@@ -1,16 +1,10 @@
-;;; pc-bufsw.el -- switch buffers in mru/lru order
-
-;; Author: Igor Bukanov <igor@mir2.org>
-;; Maintainer: Igor Bukanov
-;; Version 3.0
-;; Keywords: buffer
-;; URL: https://github.com/ibukanov/emacs-pc-bufsw
+;;; pc-bufsw.el --- switch buffers in mru/lru order
 
 ;; Anyone is free to copy, modify, publish, use, compile, sell, or
 ;; distribute this software, either in source code form or as a compiled
 ;; binary, for any purpose, commercial or non-commercial, and by any
 ;; means.
-;; 
+;;
 ;; In jurisdictions that recognize copyright laws, the author or authors
 ;; of this software dedicate any and all copyright interest in the
 ;; software to the public domain. We make this dedication for the benefit
@@ -18,7 +12,7 @@
 ;; successors. We intend this dedication to be an overt act of
 ;; relinquishment in perpetuity of all present and future rights to this
 ;; software under copyright law.
-;; 
+;;
 ;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 ;; EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 ;; MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -26,6 +20,11 @@
 ;; OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 ;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;; OTHER DEALINGS IN THE SOFTWARE.
+
+;; Author: Igor Bukanov <igor@mir2.org>
+;; Version: 2.91
+;; Keywords: buffer
+;; URL: https://github.com/ibukanov/emacs-pc-bufsw
 
 ;;; Commentary:
 
@@ -40,8 +39,11 @@
 
 ;;; ChangeLog:
 
-;; 2015-09-17 (3.0 release)
-;; Using pc-bufsw- and pc-bufsw--, not non-standard pc-bufsw:: prefix for function names.
+;; 2015-09-18 (2.91 release)
+;; Using pc-bufsw- for public and pc-bufsw-- for private functions and
+;; variables, not non-standard pc-bufsw:: prefix for function names.
+;; Support for the customization.
+;; Support for autoloading.
 
 ;; 2007-06-27
 ;; Removal of window switching facility making pc-bufsw to switch only between
@@ -63,12 +65,34 @@
 
 ;;; Code:
 
-(provide 'pc-bufsw)
+;;;###autoload
+(defgroup pc-bufsw nil
+  "Switch buffers following the most/least recently used order."
+  :group 'extensions
+  :group 'convenience)
 
-(defvar pc-bufsw-quite-time 3
-  "*Quite time to automaticaly terminate buffer switch mode.  If there
+;;;###autoload
+(defcustom pc-bufsw-key-most '([C-tab] "\e[1;5I")
+  "Keys to switch to the most recently used buffer. Any of these keys trigger cycling of buffers from most-rcently-used to least-recently-used order. The default set is Control-Tab and sequence reported by some terminals when pressing C-Tab there that Emacs does not recognize on its own."
+  :group 'pc-bufsw
+  :type '(repeat key-sequence)
+  )
+
+;;;###autoload
+(defcustom pc-bufsw-key-least '([C-S-tab] [C-S-iso-lefttab] "\e[1;6I")
+  "Keys to switch to the least recently used buffer. Any of these keys trigger cycling of buffers from least-rcently-used to most-recently-used order. The default set is Control-Shift-Tab and sequence reported by some terminals when pressing C-S-Tab that Emacs does not recognize on its own."
+  :group 'pc-bufsw
+  :type '(repeat key-sequence)
+  )
+
+;;;###autoload
+(defcustom pc-bufsw-quit-time 3
+  "Time to automaticaly quit buffer switch mode.  If there
 is no input during quite-time seconds makes the last choosen buffer
-current." )
+current."
+  :group 'pc-bufsw
+  :type 'number
+  )
 
 ; Variable to store data vector during buffers change. Each element is buffer
 ; to show after i-th switch. It is supposed that buffers in the vector are
@@ -85,51 +109,21 @@ current." )
 ; order much the list except the selected buffer that is moved on the top.
 (defvar pc-bufsw--start-buf-list nil)
 
-(defun pc-bufsw--previous ()
+;;;###autoload
+(defun pc-bufsw-mru ()
   (interactive)
   (pc-bufsw--walk 1))
 
-(defun pc-bufsw--lru ()
+;;;###autoload
+(defun pc-bufsw-lru ()
   (interactive)
   (pc-bufsw--walk -1))
 
 ;;;###autoload
-(defun pc-bufsw-bind-keys (key1 key2)
-  "Bind key1 and key2 to switch buffers in most or least recently used
-oder.  Pressing key1 or key2 would switch to most or least recently
-used buffer and enter switch mode. In this mode subsequent pressing of
-key1 or key2 would go father in buffer list shown in echo area.
-
-Pressing any other key or no input during the period indicated by
-'pc-bufsw-quite-time' variable closes the mode and makes the last
-selected buffer current.  If newly selected buffer is shown in some
-window that would be used to show the buffer. Otherwise it will be
-displayed in the initial window.
-
-Typical usage in .emacs file:
-
-  (require 'pc-bufsw)
-  (pc-bufsw-bind-keys [C-tab] [C-S-tab])
-
-Or like the following which also works with non-graphical terminals when
-C-Tab and S-C-Tab are not available:
-
-  (require 'pc-bufsw)
-  (pc-bufsw-bind-keys [f12] [f11])
-"
-  (global-set-key key1 'pc-bufsw--previous)
-  (global-set-key key2 'pc-bufsw--lru))
+(mapc (lambda (key) (global-set-key key 'pc-bufsw-mru)) pc-bufsw-key-most)
 
 ;;;###autoload
-(defun pc-bufsw-bind-keys-default ()
-  "Bind [C-tab] and [C-S-tab] to switch buffers according to most or least recently used order."
-  (pc-bufsw-bind-keys [C-tab] [C-S-tab])
-
-  (if window-system
-      ;; Workarounds for some Linux GUI setups
-      (global-set-key [C-S-iso-lefttab] 'pc-bufsw--lru)
-    ;; Workaround for Cygiwn terminal
-    (pc-bufsw-bind-keys "\e[1;5I" "\e[1;6I")))
+(mapc (lambda (key) (global-set-key key 'pc-bufsw-lru)) pc-bufsw-key-least)
 
 ; Main loop. It does 4 things.
 ; First, select new buffer and/or windows according to user input.
@@ -148,27 +142,25 @@ C-Tab and S-C-Tab are not available:
       (when (not (= pc-bufsw--cur-index prev-index))
 	(switch-to-buffer (pc-bufsw--get-buf pc-bufsw--cur-index) t))
       (pc-bufsw--show-buffers-names)
-      (when (sit-for pc-bufsw-quite-time)
+      (when (sit-for pc-bufsw-quit-time)
 	(pc-bufsw--finish)))))
 
 (defun pc-bufsw--can-start ()
   (not (window-minibuffer-p (selected-window))))
 
 (defun pc-bufsw--get-buffer-display-time (buffer)
-  (save-excursion
-    (set-buffer buffer)
+  (with-current-buffer buffer
     buffer-display-time))
 
 (defun pc-bufsw--set-buffer-display-time (buffer time)
-  (save-excursion
-    (set-buffer buffer)
+  (with-current-buffer buffer
     (setq buffer-display-time time)))
 
 ;; Hook to access next input from user.
 (defun pc-bufsw--switch-hook ()
   (when (or (null pc-bufsw--walk-vector)
-	    (not (or (eq 'pc-bufsw--lru this-command)
-		     (eq 'pc-bufsw--previous this-command)
+	    (not (or (eq 'pc-bufsw-lru this-command)
+		     (eq 'pc-bufsw-mru this-command)
 		     (eq 'handle-switch-frame this-command))))
     (pc-bufsw--finish)))
 
@@ -261,3 +253,6 @@ C-Tab and S-C-Tab are not available:
 	    (bury-buffer buf)))
 	list))
 
+(provide 'pc-bufsw)
+
+;;; pc-bufsw.el ends here
