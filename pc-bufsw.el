@@ -24,7 +24,7 @@
 ;; Author: Igor Bukanov <igor@mir2.org>
 ;; Version: 3.0
 ;; Keywords: buffer
-;; URL: https://github.com/ibukanov/emacs-pc-bufsw
+;; URL: https://github.com/ibukanov/pc-bufsw
 
 ;;; Commentary:
 
