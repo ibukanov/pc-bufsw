@@ -22,7 +22,7 @@
 ;; OTHER DEALINGS IN THE SOFTWARE.
 
 ;; Author: Igor Bukanov <igor@mir2.org>
-;; Version: 2.91
+;; Version: 3.0
 ;; Keywords: buffer
 ;; URL: https://github.com/ibukanov/emacs-pc-bufsw
 
@@ -39,13 +39,13 @@
 
 ;;; ChangeLog:
 
-;; 2015-09-18 (2.91 release)
-;; Using pc-bufsw- for public and pc-bufsw-- for private functions and
-;; variables, not non-standard pc-bufsw:: prefix for function names.
+;; 2015-09-18 (3.0 release)
 ;; Support for the customization.
 ;; Support for autoloading.
+;; Using pc-bufsw- for public and pc-bufsw-- for private functions and
+;; variables, not non-standard pc-bufsw:: prefix for function names.
 
-;; 2007-06-27
+;; 2007-06-27 (2.0 release)
 ;; Removal of window switching facility making pc-bufsw to switch only between
 ;; buffers. Emacs and window managers provides enough key bindings to switch
 ;; between windows and frames.
