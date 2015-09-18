@@ -73,49 +73,52 @@
 
 ;;;###autoload
 (defcustom pc-bufsw-key-most '([C-tab] "\e[1;5I")
-  "Keys to switch to the most recently used buffer. Any of these keys trigger cycling of buffers from most-rcently-used to least-recently-used order. The default set is Control-Tab and sequence reported by some terminals when pressing C-Tab there that Emacs does not recognize on its own."
+  "Keys to switch to the most recently used buffer.  Any of these keys trigger cycling of buffers from most-rcently-used to least-recently-used order.  The default set is Control-Tab and sequence reported by some terminals when pressing C-Tab there that Emacs does not recognize on its own."
   :group 'pc-bufsw
   :type '(repeat key-sequence)
   )
 
 ;;;###autoload
 (defcustom pc-bufsw-key-least '([C-S-tab] [C-S-iso-lefttab] "\e[1;6I")
-  "Keys to switch to the least recently used buffer. Any of these keys trigger cycling of buffers from least-rcently-used to most-recently-used order. The default set is Control-Shift-Tab and sequence reported by some terminals when pressing C-S-Tab that Emacs does not recognize on its own."
+  "Keys to switch to the least recently used buffer.  Any of these keys trigger cycling of buffers from least-rcently-used to most-recently-used order.  The default set is Control-Shift-Tab and sequence reported by some terminals when pressing C-S-Tab that Emacs does not recognize on its own."
   :group 'pc-bufsw
   :type '(repeat key-sequence)
   )
 
 ;;;###autoload
 (defcustom pc-bufsw-quit-time 3
-  "Time to automaticaly quit buffer switch mode.  If there
-is no input during quite-time seconds makes the last choosen buffer
-current."
+  "Quit buffer switching after the given time in seconds.  If
+there is no input during quite-time seconds makes the last
+choosen buffer current."
   :group 'pc-bufsw
   :type 'number
   )
 
-; Variable to store data vector during buffers change. Each element is buffer
-; to show after i-th switch. It is supposed that buffers in the vector are
-; odered according to the most recently used oder.
-(defvar pc-bufsw--walk-vector nil)
+(defvar pc-bufsw--walk-vector nil
+  "Vector of buffers to navigate during buffer switch.
+Buffers are odered from most to least recently used.")
 
 (defun pc-bufsw--get-buf (index)
   (aref pc-bufsw--walk-vector index))
 
-; Index of currently selected buffer in pc-bufsw--walk-vector.
-(defvar pc-bufsw--cur-index 0)
+(defvar pc-bufsw--cur-index 0
+  "Index of currently selected buffer in `pc-bufsw--walk-vector'.")
 
-; The initial buffer list.  When a user stops the selection, the new buffer
-; order much the list except the selected buffer that is moved on the top.
-(defvar pc-bufsw--start-buf-list nil)
+(defvar pc-bufsw--start-buf-list nil
+  "The buffer list at the start of the buffer switch.
+When the user stops the selection, the new order of buffers
+matches the list except the selected buffer that is moved on the
+top.")
 
 ;;;###autoload
 (defun pc-bufsw-mru ()
+  "Switch to the most recently used buffer."
   (interactive)
   (pc-bufsw--walk 1))
 
 ;;;###autoload
 (defun pc-bufsw-lru ()
+  "Switch to the least recently used buffer."
   (interactive)
   (pc-bufsw--walk -1))
 
@@ -125,12 +128,12 @@ current."
 ;;;###autoload
 (mapc (lambda (key) (global-set-key key 'pc-bufsw-lru)) pc-bufsw-key-least)
 
-; Main loop. It does 4 things.
-; First, select new buffer and/or windows according to user input.
-; Second, it selects the newly choosen buffer/windows/frame.
-; Third, it draw in the echo area line with buffer names.
-; Forth, it waits for a timeout to terminate the switching.
 (defun pc-bufsw--walk (direction)
+  ;; Main loop. It does 4 things. First, select new buffer and/or
+  ;; windows according to user input. Second, it selects the newly
+  ;; choosen buffer/windows/frame. Third, it draw in the echo area
+  ;; line with buffer names. Forth, it waits for a timeout to
+  ;; terminate the switching.
   (when (and (null pc-bufsw--walk-vector) (pc-bufsw--can-start))
     (setq pc-bufsw--start-buf-list (buffer-list))
     (setq pc-bufsw--cur-index 0)
@@ -156,16 +159,16 @@ current."
   (with-current-buffer buffer
     (setq buffer-display-time time)))
 
-;; Hook to access next input from user.
 (defun pc-bufsw--switch-hook ()
+  ;; Hook to access next input from user.
   (when (or (null pc-bufsw--walk-vector)
 	    (not (or (eq 'pc-bufsw-lru this-command)
 		     (eq 'pc-bufsw-mru this-command)
 		     (eq 'handle-switch-frame this-command))))
     (pc-bufsw--finish)))
 
-;; Construct main buffer vector.
-(defun pc-bufsw--get-walk-vector()
+(defun pc-bufsw--get-walk-vector ()
+  ;; Construct main buffer vector.
   (let* ((cur-buf (current-buffer))
 	 (assembled (list cur-buf)))
     (mapc (lambda (buf)
@@ -176,19 +179,19 @@ current."
     (setq assembled (nreverse assembled))
     (apply 'vector assembled)))
 
-;;Return nill if buffer is not sutable for switch
 (defun pc-bufsw--can-work-buffer (buffer)
+  ;; Return nill if buffer is not sutable for switch.
   (let ((name (buffer-name buffer)))
     (not (char-equal ?\  (aref name 0)))))
 
-;; Echo buffer list. Current buffer marked by <>.
-(defun pc-bufsw--show-buffers-names()
+(defun pc-bufsw--show-buffers-names ()
+  ;; Echo buffer list. Current buffer marked by <>.
   (let* ((width (frame-width))
 	 (n (pc-bufsw--find-first-visible width))
 	 (str (pc-bufsw--make-show-str n width)))
     (message "%s" str)))
 
-(defun pc-bufsw--find-first-visible(width)
+(defun pc-bufsw--find-first-visible (width)
   (let ((first-visible 0)
 	(i 1)
 	(visible-length (pc-bufsw--show-name-len 0 t)))
@@ -201,7 +204,7 @@ current."
       (setq i (1+ i)))
     first-visible))
 
-(defun pc-bufsw--show-name-len(i at-left-edge)
+(defun pc-bufsw--show-name-len (i at-left-edge)
   (+ (if at-left-edge 2 3)
      (length (buffer-name (pc-bufsw--get-buf i)))))
 
@@ -223,7 +226,7 @@ current."
 	    (setq continue-loop nil)))))
     str))
 
-(defun pc-bufsw--show-name(i at-left-edge)
+(defun pc-bufsw--show-name (i at-left-edge)
   (let ((name (buffer-name (pc-bufsw--get-buf i))))
     (cond
      ((= i pc-bufsw--cur-index) (concat (if at-left-edge "<" " <") name ">"))
@@ -235,8 +238,8 @@ current."
 	(mod (+ pc-bufsw--cur-index direction)
 	     (length pc-bufsw--walk-vector))))
 
-;; Called on switch mode close
-(defun pc-bufsw--finish()
+(defun pc-bufsw--finish ()
+  ;; Called on switch mode close.
   (pc-bufsw--restore-order (pc-bufsw--get-buf pc-bufsw--cur-index)
 			   pc-bufsw--start-buf-list)
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
@@ -245,9 +248,9 @@ current."
   (setq pc-bufsw--start-buf-list nil)
   (message nil))
 
-;; Put buffers in Emacs buffer list according to oder indicated by list
-;; except put chosen-buffer to the first place.
-(defun pc-bufsw--restore-order(chosen-buffer list)
+(defun pc-bufsw--restore-order (chosen-buffer list)
+  ;; Put buffers in Emacs buffer list according to oder indicated by
+  ;; list except put chosen-buffer to the first place.
   (mapc (lambda (buf)
 	  (when (not (eq buf chosen-buffer))
 	    (bury-buffer buf)))
