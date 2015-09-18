@@ -1,4 +1,4 @@
-;;; pc-bufsw.el --- switch buffers in mru/lru order
+;;; pc-bufsw.el --- PC style quick buffer switcher
 
 ;; Anyone is free to copy, modify, publish, use, compile, sell, or
 ;; distribute this software, either in source code form or as a compiled
@@ -29,13 +29,9 @@
 ;;; Commentary:
 
 ;; This switches Emacs buffers according to
-;; most-recently-used/least-recently-used order that is similar to one
-;; that is often available in Windows or Linux PC applications. The
-;; main idea here is that a user chooses two key combinations like
-;; C-tab/C-S-tab that switch between buffers according to most or
-;; least recently used order. After the final choice is made the last
-;; selected buffer becomes the most recently used one.
-
+;; most-recently-used/least-recently-used order using `C-tab` and
+;; `C-S-tab` keys. It is similar to window or tab switchers that are
+;; available in PC desktop environments or applications.
 
 ;;; ChangeLog:
 

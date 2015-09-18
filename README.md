@@ -1,7 +1,7 @@
 # pc-bufsw
 PC style quick buffer switcher for Emacs
 
-This switches Emacs buffers according to most-recently-used/least-recently-used order that is similar to one that is often available in PC applications or desktop environments. The main idea here is that a user chooses two key combinations like C-tab/C-S-tab that switch between buffers according to most or least recently used order. After the final choice is made the last selected buffer becomes the most recently used one.
+This switches Emacs buffers according to most-recently-used/least-recently-used order using `C-tab` and `C-S-tab` keys. It is similar to window or tab switchers that are available in PC desktop environments or applications. 
 
 Installation
 ------------
