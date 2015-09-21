@@ -6,11 +6,11 @@ This switches Emacs buffers according to most-recently-used/least-recently-used 
 Installation
 ------------
 
-# Installing as a package
+### Installing as a package
 
 Download pc-bufsw.el and run `(package-install-from-buffer ".../pc-bufsw.el")`. After that use customization interface to set `pc-bufsw-keys-enable` in the group `pc-bufsw` to true and apply and save it. This binds `C-tab` and `C-S-tab` keys as buffer switchers. To change the keybindings, customize `pc-bufsw-keys`.
 
-# Manual installation
+### Manual installation
 
 Copy `pc-bufsw.el` to your Emacs load path and add to your Emacs init file:
 ```
