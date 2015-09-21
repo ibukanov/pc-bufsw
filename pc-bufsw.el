@@ -62,33 +62,82 @@
 ;;; Code:
 
 ;;;###autoload
-(defgroup pc-bufsw nil
-  "Switch buffers following the most/least recently used order."
-  :group 'extensions
-  :group 'convenience)
+(defun pc-bufsw-mru ()
+  "Switch to the most recently used buffer."
+  (interactive)
+  (pc-bufsw--walk 1))
 
 ;;;###autoload
-(defcustom pc-bufsw-key-most '([C-tab] "\e[1;5I")
-  "Keys to switch to the most recently used buffer.  Any of these keys trigger cycling of buffers from most-rcently-used to least-recently-used order.  The default set is Control-Tab and sequence reported by some terminals when pressing C-Tab there that Emacs does not recognize on its own."
-  :group 'pc-bufsw
-  :type '(repeat key-sequence)
-  )
+(defun pc-bufsw-lru ()
+  "Switch to the least recently used buffer."
+  (interactive)
+  (pc-bufsw--walk -1))
 
 ;;;###autoload
-(defcustom pc-bufsw-key-least '([C-S-tab] [C-S-iso-lefttab] "\e[1;6I")
-  "Keys to switch to the least recently used buffer.  Any of these keys trigger cycling of buffers from least-rcently-used to most-recently-used order.  The default set is Control-Shift-Tab and sequence reported by some terminals when pressing C-S-Tab that Emacs does not recognize on its own."
-  :group 'pc-bufsw
-  :type '(repeat key-sequence)
-  )
+(defun pc-bufsw-clear-default-keybindings ()
+  "Clear default keybindings set by `pc-bufsw-default-keybindings'."
+  (let ((gm (current-global-map)))
+    (mapc (lambda (key)
+	    (when (eq (lookup-key gm key) 'pc-bufsw-mru)
+		(define-key gm key nil)))
+	  (car pc-bufsw-keys))
+    (mapc (lambda (key)
+	    (when (eq (lookup-key gm key) 'pc-bufsw-lru)
+	      (define-key gm key nil)))
+	  (cadr pc-bufsw-keys))))
+
+;; See
+;; https://stackoverflow.com/questions/32693757/emacs-package-customization-and-autoloads
+;; why I have to copy all defcustom definition literally into the
+;; autoload file. I also copied pc-bufsw-default-keybindings there so
+;; the function can be called without loading the whole file.
 
 ;;;###autoload
-(defcustom pc-bufsw-quit-time 3
-  "Quit buffer switching after the given time in seconds.  If
-there is no input during quite-time seconds makes the last
-choosen buffer current."
-  :group 'pc-bufsw
-  :type 'number
-  )
+(unless (fboundp 'pc-bufsw-default-keybindings)
+
+  (defun pc-bufsw-default-keybindings ()
+    "Enable keybindings according to `pc-bufsw-keys'."
+    (mapc (lambda (key) (global-set-key key 'pc-bufsw-mru)) (car pc-bufsw-keys))
+    (mapc (lambda (key) (global-set-key key 'pc-bufsw-lru)) (cadr pc-bufsw-keys)))
+
+  (defgroup pc-bufsw nil
+    "Settings for PC style quick buffer switcher."
+    :group 'convenience)
+
+  (defcustom pc-bufsw-keys
+    '(([C-tab] "\e[1;5I") ([C-S-tab] [C-S-iso-lefttab] "\e[1;6I"))
+    "Two-element list with key sets to cycle from most to least recently
+used buffers and in reverse.  The default sets contain <C-tab> and <C-S-tab> plus sequence
+reported by some terminals when pressing those keys that Emacs does not recognize as such."
+    :group 'pc-bufsw
+    :type '(list (repeat
+		  :tag "Cycle from most to least recently used buffers using any of"
+		  key-sequence)
+		 (repeat
+		  :tag "Cycle from least to most recently used buffers using any of"
+		  key-sequence)))
+
+  (defcustom pc-bufsw-keys-enable nil
+    "If true, enable keybindings from `pc-bufsw-keys'."
+    :group 'pc-bufsw
+    :type 'boolean
+    :set-after '(pc-bufsw-keys)
+    :set (lambda (symbol value)
+	   ;; During the package initialization boundp gives false
+	   ;; preventing call to the clear which triggers otherwise
+	   ;; loading of the whole file.
+	   (when (boundp `pc-bufsw-keys-enable)
+	     (pc-bufsw-clear-default-keybindings))
+	   (set-default symbol value)
+	   (when value
+	     (pc-bufsw-default-keybindings))))
+
+  (defcustom pc-bufsw-quit-time 3
+    "Quit buffer switching after the given time in seconds.  If
+there is no input during this interval the last choosen buffer
+becomes current."
+    :group 'pc-bufsw
+    :type 'number))
 
 (defvar pc-bufsw--walk-vector nil
   "Vector of buffers to navigate during buffer switch.
@@ -105,24 +154,6 @@ Buffers are odered from most to least recently used.")
 When the user stops the selection, the new order of buffers
 matches the list except the selected buffer that is moved on the
 top.")
-
-;;;###autoload
-(defun pc-bufsw-mru ()
-  "Switch to the most recently used buffer."
-  (interactive)
-  (pc-bufsw--walk 1))
-
-;;;###autoload
-(defun pc-bufsw-lru ()
-  "Switch to the least recently used buffer."
-  (interactive)
-  (pc-bufsw--walk -1))
-
-;;;###autoload
-(mapc (lambda (key) (global-set-key key 'pc-bufsw-mru)) pc-bufsw-key-most)
-
-;;;###autoload
-(mapc (lambda (key) (global-set-key key 'pc-bufsw-lru)) pc-bufsw-key-least)
 
 (defun pc-bufsw--walk (direction)
   ;; Main loop. It does 4 things. First, select new buffer and/or
