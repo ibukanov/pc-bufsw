@@ -34,3 +34,9 @@ You can also use such manual bindings after installing the package, but then mak
 (global-set-key [f6] 'pc-bufsw-mru)
 (global-set-key [f5] 'pc-bufsw-lru)
 ```
+
+License
+-------
+
+This software is in the public domain as stated [here](LICENSE).
+
