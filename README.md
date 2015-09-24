@@ -1,14 +1,14 @@
 # pc-bufsw
 PC style quick buffer switcher for Emacs
 
-This switches Emacs buffers according to most-recently-used/least-recently-used order using `C-tab` and `C-S-tab` keys. It is similar to window or tab switchers that are available in PC desktop environments or applications. 
+This switches Emacs buffers according to most-recently-used/least-recently-used order using `C-tab` and `C-S-tab` keys. It is similar to window or tab switchers that are available in PC desktop environments or applications.
 
 Installation
 ------------
 
 ### Installing as a package
 
-Download pc-bufsw.el and run `(package-install-from-buffer ".../pc-bufsw.el")`. After that use customization interface to set `pc-bufsw-keys-enable` in the group `pc-bufsw` to true and apply and save it. This binds `C-tab` and `C-S-tab` keys as buffer switchers. To change the keybindings, customize `pc-bufsw-keys`.
+If your Emacs has package.el (which is automatically the case for Emacs >= 24), you can install pc-bufsw from [MELPA](https://melpa.org/). You can also download [pc-bufsw.el](pc-bufsw.el), open it in Emacs and run `package-install-from-buffer`. After the installation use customization interface to set `pc-bufsw-keys-enable` in the group `pc-bufsw` to true and apply and save it. This binds `C-tab` and `C-S-tab` keys as buffer switchers. To change the keybindings, customize `pc-bufsw-keys`.
 
 ### Manual installation
 
@@ -39,4 +39,3 @@ License
 -------
 
 This software is in the public domain as stated [here](LICENSE).
-
