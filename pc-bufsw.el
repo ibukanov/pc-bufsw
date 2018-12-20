@@ -107,7 +107,7 @@
     :group 'convenience)
 
   (defcustom pc-bufsw-keys
-    '(([C-tab] "\e[1;5I") ([C-S-tab] [C-S-iso-lefttab] "\e[1;6I"))
+    '(([C-tab] "\e[1;5I" "\e[1;5i") ([C-S-tab] [C-S-iso-lefttab] "\e[1;6I" "\e[1;6i"))
     "Two-element list with key sets to cycle from most to least recently
 used buffers and in reverse.  The default sets contain <C-tab> and <C-S-tab> plus sequence
 reported by some terminals when pressing those keys that Emacs does not recognize as such."
