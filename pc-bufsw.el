@@ -1,4 +1,4 @@
-;;; pc-bufsw.el --- PC style quick buffer switcher
+;; pc-bufsw.el --- PC style quick buffer switcher
 
 ;; This is free and unencumbered software released into the public domain.
 ;;`
@@ -24,7 +24,7 @@
 ;; OTHER DEALINGS IN THE SOFTWARE.
 
 ;; Author: Igor Bukanov <igor@mir2.org>
-;; Version: 3.0
+;; Version: 3.1
 ;; Keywords: buffer
 ;; URL: https://github.com/ibukanov/pc-bufsw
 
@@ -32,10 +32,13 @@
 
 ;; This switches Emacs buffers according to
 ;; most-recently-used/least-recently-used order using `C-tab` and
-;; `C-S-tab` keys. It is similar to window or tab switchers that are
+;; `C-S-tab` keys.  It is similar to window or tab switchers that are
 ;; available in PC desktop environments or applications.
 
 ;;; ChangeLog:
+
+;; 2018-12-20 (3.1 release)
+;; Turn pc-bufsw into a minor mode for simpler keymap management.
 
 ;; 2015-09-18 (3.0 release)
 ;; Support for the customization.
@@ -77,30 +80,51 @@
 
 ;;;###autoload
 (defun pc-bufsw-clear-default-keybindings ()
-  "Clear default keybindings set by `pc-bufsw-default-keybindings'."
-  (let ((gm (current-global-map)))
-    (mapc (lambda (key)
-	    (when (eq (lookup-key gm key) 'pc-bufsw-mru)
-		(define-key gm key nil)))
-	  (car pc-bufsw-keys))
-    (mapc (lambda (key)
-	    (when (eq (lookup-key gm key) 'pc-bufsw-lru)
-	      (define-key gm key nil)))
-	  (cadr pc-bufsw-keys))))
-
-;; See
-;; https://stackoverflow.com/questions/32693757/emacs-package-customization-and-autoloads
-;; why I have to copy all defcustom definition literally into the
-;; autoload file. I also copied pc-bufsw-default-keybindings there so
-;; the function can be called without loading the whole file.
+  "Deprecated. Customize `pc-bufsw-keys' instead."
+  (message "pc-bufsw-clear-default-keybindings is deprecated. Customize pc-bufsw-keys instead.")
+  (setcdr pc-bufsw-map nil))
 
 ;;;###autoload
-(unless (fboundp 'pc-bufsw-default-keybindings)
+(defun pc-bufsw-default-keybindings ()
+  "Deprecated.  Use (`pc-buf' t) instead."
+  (message "pc-bufsw-default-keybindings is deprecated. Use (`pc-buf' t) instead.")
+  (pc-bufsw t))
 
-  (defun pc-bufsw-default-keybindings ()
+;; Copy into the autoload file the minor mode definition and
+;; pc-bufsw-update-keybindings literally so calling (p-bufsw t) does
+;; not load the rest of the file until the user presses the keys. I
+;; also copy defcustom definitions literally due to
+;; https://stackoverflow.com/questions/32693757/emacs-package-customization-and-autoloads
+
+;;;###autoload
+(unless (fboundp 'pc-bufsw-update-keybindings)
+
+  (defun pc-bufsw-update-keybindings ()
     "Enable keybindings according to `pc-bufsw-keys'."
-    (mapc (lambda (key) (global-set-key key 'pc-bufsw-mru)) (car pc-bufsw-keys))
-    (mapc (lambda (key) (global-set-key key 'pc-bufsw-lru)) (cadr pc-bufsw-keys)))
+    ;; Clear existing entries if any
+    (setcdr pc-bufsw-map nil)
+    (mapc (lambda (key) (define-key pc-bufsw-map key 'pc-bufsw-mru))
+	  (car pc-bufsw-keys))
+    (mapc (lambda (key) (define-key pc-bufsw-map key 'pc-bufsw-lru))
+	  (cadr pc-bufsw-keys)))
+
+  (defvar pc-bufsw-map
+    (make-sparse-keymap)
+    "pc-bufsw mode keymap.")
+
+  (define-minor-mode pc-bufsw
+    "A minor mode to switch Emacs buffers according to most recently used order.
+
+    This is similar to window or tab switchers that are available in PC desktop
+    environments or applications. By default it uses Ctrl-Tab and Ctrl-Shift-Tabs
+    key to switch according to most-recently-used or least-recently-used order.
+    To customize keybindings edit `pc-bufsw-keys'."
+
+    :keymap 'pc-bufsw-map
+    :global t
+    :group 'pc-bufsw
+    (when pc-bufsw
+      (pc-bufsw-update-keybindings)))
 
   (defgroup pc-bufsw nil
     "Settings for PC style quick buffer switcher."
@@ -117,22 +141,22 @@ reported by some terminals when pressing those keys that Emacs does not recogniz
 		  key-sequence)
 		 (repeat
 		  :tag "Cycle from least to most recently used buffers using any of"
-		  key-sequence)))
+		  key-sequence))
+    :set (lambda (symbol value)
+	   (set-default symbol value)
+	   (pc-bufsw-update-keybindings)))
 
   (defcustom pc-bufsw-keys-enable nil
-    "If true, enable keybindings from `pc-bufsw-keys'."
+    "Deprecated.  Instead customize `pc-bufsw' to turn it on or
+     call (pc-bufsw t) in Emacs ini file."
     :group 'pc-bufsw
     :type 'boolean
     :set-after '(pc-bufsw-keys)
     :set (lambda (symbol value)
-	   ;; During the package initialization boundp gives false
-	   ;; preventing call to the clear which triggers otherwise
-	   ;; loading of the whole file.
-	   (when (boundp `pc-bufsw-keys-enable)
-	     (pc-bufsw-clear-default-keybindings))
 	   (set-default symbol value)
 	   (when value
-	     (pc-bufsw-default-keybindings))))
+	     (message "pc-bufsw-keys-enable is deprecated. Customize pc-bufsw instead.")
+	     (pc-bufsw value))))
 
   (defcustom pc-bufsw-quit-time 3
     "Quit buffer switching after the given time in seconds.  If
@@ -144,7 +168,15 @@ becomes current."
   (defcustom pc-bufsw-wrap-index t
     "Wrap to the other end of the buffer list when attempting to navigate past its edge."
     :group 'pc-bufsw
-    :type 'boolean))
+    :type 'boolean
+    :version "3.1")
+
+  (pc-bufsw-update-keybindings)
+
+  ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
+  ;; explicit require calls.
+  (when pc-bufsw-keys-enable
+    (pc-bufsw t)))
 
 (defvar pc-bufsw--walk-vector nil
   "Vector of buffers to navigate during buffer switch.
