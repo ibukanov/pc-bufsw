@@ -24,7 +24,7 @@
 ;; OTHER DEALINGS IN THE SOFTWARE.
 
 ;; Author: Igor Bukanov <igor@mir2.org>
-;; Version: 3.1
+;; Version: 3.2
 ;; Keywords: buffer
 ;; URL: https://github.com/ibukanov/pc-bufsw
 
@@ -36,6 +36,9 @@
 ;; available in PC desktop environments or applications.
 
 ;;; ChangeLog:
+
+;; 2018-12-21 (3.2 release)
+;; pc-bufsw-other-windows option
 
 ;; 2018-12-20 (3.1 release)
 ;; Turn pc-bufsw into a minor mode for simpler keymap management.
