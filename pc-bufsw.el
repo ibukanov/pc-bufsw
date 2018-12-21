@@ -171,6 +171,20 @@ becomes current."
     :type 'boolean
     :version "3.1")
 
+  (defcustom pc-bufsw-other-windows nil
+    "Defines how to treat other windows and their buffers."
+    :type '(radio
+	    (const
+	     :tag "All Buffers"
+	     :doc "Use all buffers for switching including buffers from other windows."
+	     nil)
+	    (const
+	     :tag "Skip"
+	     :doc "Switch only to buffers not already shown in other windows."
+	     :skip))
+    :group 'pc-bufsw
+    :version "3.2")
+
   (pc-bufsw-update-keybindings)
 
   ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
@@ -181,9 +195,6 @@ becomes current."
 (defvar pc-bufsw--walk-vector nil
   "Vector of buffers to navigate during buffer switch.
 Buffers are odered from most to least recently used.")
-
-(defun pc-bufsw--get-buf (index)
-  (aref pc-bufsw--walk-vector index))
 
 (defvar pc-bufsw--cur-index 0
   "Index of currently selected buffer in `pc-bufsw--walk-vector'.")
@@ -208,8 +219,8 @@ top.")
   (when pc-bufsw--walk-vector
     (let ((prev-index pc-bufsw--cur-index))
       (pc-bufsw--choose-next-index direction)
-      (when (not (= pc-bufsw--cur-index prev-index))
-	(switch-to-buffer (pc-bufsw--get-buf pc-bufsw--cur-index) t))
+      (when (/= pc-bufsw--cur-index prev-index)
+	(switch-to-buffer (aref pc-bufsw--walk-vector pc-bufsw--cur-index) t))
       (pc-bufsw--show-buffers-names)
       (when (sit-for pc-bufsw-quit-time)
 	(pc-bufsw--finish)))))
@@ -237,13 +248,15 @@ top.")
   ;; Construct main buffer vector.
   (let* ((cur-buf (current-buffer))
 	 (assembled (list cur-buf)))
-    (mapc (lambda (buf)
-	    (when (and (pc-bufsw--can-work-buffer buf)
-		       (not (eq buf cur-buf)))
-	      (setq assembled (cons buf assembled))))
-	  pc-bufsw--start-buf-list)
-    (setq assembled (nreverse assembled))
-    (apply 'vector assembled)))
+    (dolist (buf pc-bufsw--start-buf-list)
+      (when (and (not (eq buf cur-buf))
+		 (pc-bufsw--can-work-buffer buf)
+		 (cond
+		  ((eq pc-bufsw-other-windows :skip)
+		   (not (get-buffer-window buf)))
+		  (t)))
+	(setq assembled (cons buf assembled))))
+    (vconcat (nreverse assembled))))
 
 (defun pc-bufsw--can-work-buffer (buffer)
   ;; Return nill if buffer is not sutable for switch.
@@ -272,7 +285,7 @@ top.")
 
 (defun pc-bufsw--show-name-len (i at-left-edge)
   (+ (if at-left-edge 2 3)
-     (length (buffer-name (pc-bufsw--get-buf i)))))
+     (length (buffer-name (aref pc-bufsw--walk-vector i)))))
 
 (defun pc-bufsw--make-show-str (first-visible width)
   (let* ((i (1+ first-visible))
@@ -293,7 +306,7 @@ top.")
     str))
 
 (defun pc-bufsw--show-name (i at-left-edge)
-  (let ((name (buffer-name (pc-bufsw--get-buf i))))
+  (let ((name (buffer-name (aref pc-bufsw--walk-vector i))))
     (cond
      ((= i pc-bufsw--cur-index) (concat (if at-left-edge "<" " <") name ">"))
      (at-left-edge (concat " " name " "))
@@ -309,7 +322,7 @@ top.")
 
 (defun pc-bufsw--finish ()
   ;; Called on switch mode close.
-  (pc-bufsw--restore-order (pc-bufsw--get-buf pc-bufsw--cur-index)
+  (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index)
 			   pc-bufsw--start-buf-list)
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
   (setq pc-bufsw--walk-vector nil)
