@@ -89,8 +89,8 @@
 
 ;;;###autoload
 (defun pc-bufsw-default-keybindings ()
-  "Deprecated.  Use (`pc-buf' t) instead."
-  (message "pc-bufsw-default-keybindings is deprecated. Use (`pc-buf' t) instead.")
+  "Deprecated.  Use (`pc-bufsw' t) instead."
+  (message "pc-bufsw-default-keybindings is deprecated. Use (`pc-bufsw' t) instead.")
   (pc-bufsw t))
 
 ;; Copy into the autoload file the minor mode definition and
@@ -262,7 +262,7 @@ top.")
     (vconcat (nreverse assembled))))
 
 (defun pc-bufsw--can-work-buffer (buffer)
-  ;; Return nill if buffer is not sutable for switch.
+  ;; Return nil if buffer is not suitable for switch.
   (let ((name (buffer-name buffer)))
     (not (char-equal ?\  (aref name 0)))))
 
@@ -334,7 +334,7 @@ top.")
   (message nil))
 
 (defun pc-bufsw--restore-order (chosen-buffer list)
-  ;; Put buffers in Emacs buffer list according to oder indicated by
+  ;; Put buffers in Emacs buffer list according to order indicated by
   ;; list except put chosen-buffer to the first place.
   (mapc (lambda (buf)
 	  (when (not (eq buf chosen-buffer))
