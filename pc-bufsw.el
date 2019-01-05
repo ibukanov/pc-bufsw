@@ -325,21 +325,22 @@ top.")
 
 (defun pc-bufsw--finish ()
   ;; Called on switch mode close.
-  (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index)
-			   pc-bufsw--start-buf-list)
+  (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index))
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
   (setq pc-bufsw--walk-vector nil)
   (setq pc-bufsw--cur-index 0)
   (setq pc-bufsw--start-buf-list nil)
   (message nil))
 
-(defun pc-bufsw--restore-order (chosen-buffer list)
-  ;; Put buffers in Emacs buffer list according to order indicated by
-  ;; list except put chosen-buffer to the first place.
-  (mapc (lambda (buf)
-	  (when (not (eq buf chosen-buffer))
-	    (bury-buffer buf)))
-	list))
+(defun pc-bufsw--restore-order (chosen-buffer)
+  "Ensure CHOSEN-BUFFER is at the front of the current frame's buffer list."
+  (set-frame-parameter
+   nil 'buffer-list
+   (cons chosen-buffer
+	 (delq chosen-buffer (frame-parameter nil 'buffer-list))))
+  (set-frame-parameter
+   nil 'buried-buffer-list
+   (delq chosen-buffer (frame-parameter nil 'buried-buffer-list))))
 
 (provide 'pc-bufsw)
 
