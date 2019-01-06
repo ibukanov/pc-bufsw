@@ -210,6 +210,13 @@ Formatting can be added using text properties, e.g.:
     :type '(choice (const nil)
                    face))
 
+  (defcustom pc-bufsw-prefer-current-window nil
+    "Prefer buffers previously displayed in the current window when building buffer list."
+    :type 'boolean)
+  (defcustom pc-bufsw-prefer-current-frame nil
+    "Prefer buffers previously displayed in the current frame when building buffer list."
+    :type 'boolean)
+
   (pc-bufsw-update-keybindings)
 
   ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
@@ -256,10 +263,16 @@ Buffers are odered from most to least recently used.")
 
 (defun pc-bufsw--get-walk-vector ()
   ;; Construct main buffer vector.
-  (let* ((cur-buf (current-buffer))
-	 (assembled (list cur-buf)))
-    (dolist (buf (buffer-list))
-      (when (and (not (eq buf cur-buf))
+  (let* (assembled
+	 (buffers (append
+		   (list (current-buffer))
+		   (when pc-bufsw-prefer-current-window
+		     (mapcar #'car (window-prev-buffers)))
+		   (when pc-bufsw-prefer-current-frame
+		     (frame-parameter (selected-frame) 'buffer-list))
+		   (buffer-list))))
+    (dolist (buf buffers)
+      (when (and (not (memq buf assembled))
 		 (pc-bufsw--can-work-buffer buf)
 		 (cond
 		  ((eq pc-bufsw-other-windows :skip)
