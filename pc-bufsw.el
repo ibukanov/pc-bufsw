@@ -253,14 +253,6 @@ top.")
 (defun pc-bufsw--can-start ()
   (not (window-minibuffer-p (selected-window))))
 
-(defun pc-bufsw--get-buffer-display-time (buffer)
-  (with-current-buffer buffer
-    buffer-display-time))
-
-(defun pc-bufsw--set-buffer-display-time (buffer time)
-  (with-current-buffer buffer
-    (setq buffer-display-time time)))
-
 (defun pc-bufsw--switch-hook ()
   ;; Hook to access next input from user.
   (when (or (null pc-bufsw--walk-vector)
