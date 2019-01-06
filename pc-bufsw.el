@@ -188,6 +188,19 @@ becomes current."
     :group 'pc-bufsw
     :version "3.2")
 
+  (defcustom pc-bufsw-decorator-left "<"
+    "Defines which character is used when decorating the selected buffer.
+
+Formatting can be added using text properties, e.g.:
+(setq pc-bufsw-decorator-left (propertize \"[\" \\='face \\='bold))"
+    :type 'string)
+  (defcustom pc-bufsw-decorator-right ">"
+    "Defines which character is used when decorating the selected buffer.
+
+Formatting can be added using text properties, e.g.:
+(setq pc-bufsw-decorator-right (propertize \"]\" \\='face \\='bold))"
+    :type 'string)
+
   (pc-bufsw-update-keybindings)
 
   ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
@@ -309,11 +322,15 @@ top.")
     str))
 
 (defun pc-bufsw--show-name (i at-left-edge)
-  (let ((name (buffer-name (aref pc-bufsw--walk-vector i))))
-    (cond
-     ((= i pc-bufsw--cur-index) (concat (if at-left-edge "<" " <") name ">"))
-     (at-left-edge (concat " " name " "))
-     (t (concat "  " name " ")))))
+  (let ((current (= i pc-bufsw--cur-index)))
+    (concat
+     (if at-left-edge "" " ")
+     (if current pc-bufsw-decorator-left
+       (make-string (length pc-bufsw-decorator-left) ?\ ))
+     (buffer-name (aref pc-bufsw--walk-vector i))
+     (if current pc-bufsw-decorator-right
+       (make-string (length pc-bufsw-decorator-right) ?\ ))
+     )))
 
 (defun pc-bufsw--choose-next-index (direction)
   (setq pc-bufsw--cur-index
