@@ -201,6 +201,15 @@ Formatting can be added using text properties, e.g.:
 (setq pc-bufsw-decorator-right (propertize \"]\" \\='face \\='bold))"
     :type 'string)
 
+  (defcustom pc-bufsw-buffer-face nil
+    "If non-nil, use this face for buffer names."
+    :type '(choice (const nil)
+                   face))
+  (defcustom pc-bufsw-selected-buffer-face nil
+    "If non-nil, use this face for selected buffer names."
+    :type '(choice (const nil)
+                   face))
+
   (pc-bufsw-update-keybindings)
 
   ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
@@ -322,12 +331,15 @@ top.")
     str))
 
 (defun pc-bufsw--show-name (i at-left-edge)
-  (let ((current (= i pc-bufsw--cur-index)))
+  (let* ((name (buffer-name (aref pc-bufsw--walk-vector i)))
+	 (current (= i pc-bufsw--cur-index))
+	 (face (if current pc-bufsw-selected-buffer-face
+		 pc-bufsw-buffer-face)))
     (concat
      (if at-left-edge "" " ")
      (if current pc-bufsw-decorator-left
        (make-string (length pc-bufsw-decorator-left) ?\ ))
-     (buffer-name (aref pc-bufsw--walk-vector i))
+     (if face (propertize name 'face face) name)
      (if current pc-bufsw-decorator-right
        (make-string (length pc-bufsw-decorator-right) ?\ ))
      )))
