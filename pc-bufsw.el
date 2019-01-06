@@ -224,12 +224,6 @@ Buffers are odered from most to least recently used.")
 (defvar pc-bufsw--cur-index 0
   "Index of currently selected buffer in `pc-bufsw--walk-vector'.")
 
-(defvar pc-bufsw--start-buf-list nil
-  "The buffer list at the start of the buffer switch.
-When the user stops the selection, the new order of buffers
-matches the list except the selected buffer that is moved on the
-top.")
-
 (defun pc-bufsw--walk (direction)
   ;; Main loop. It does 4 things. First, select new buffer and/or
   ;; windows according to user input. Second, it selects the newly
@@ -237,7 +231,6 @@ top.")
   ;; line with buffer names. Forth, it waits for a timeout to
   ;; terminate the switching.
   (when (and (null pc-bufsw--walk-vector) (pc-bufsw--can-start))
-    (setq pc-bufsw--start-buf-list (buffer-list))
     (setq pc-bufsw--cur-index 0)
     (setq pc-bufsw--walk-vector (pc-bufsw--get-walk-vector))
     (add-hook 'pre-command-hook 'pc-bufsw--switch-hook))
@@ -265,7 +258,7 @@ top.")
   ;; Construct main buffer vector.
   (let* ((cur-buf (current-buffer))
 	 (assembled (list cur-buf)))
-    (dolist (buf pc-bufsw--start-buf-list)
+    (dolist (buf (buffer-list))
       (when (and (not (eq buf cur-buf))
 		 (pc-bufsw--can-work-buffer buf)
 		 (cond
@@ -350,7 +343,6 @@ top.")
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
   (setq pc-bufsw--walk-vector nil)
   (setq pc-bufsw--cur-index 0)
-  (setq pc-bufsw--start-buf-list nil)
   (message nil))
 
 (defun pc-bufsw--restore-order (chosen-buffer)
