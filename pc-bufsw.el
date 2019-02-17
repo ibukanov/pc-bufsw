@@ -205,6 +205,14 @@ Formatting can be added using text properties, e.g.:
     "If non-nil, use this face for buffer names."
     :type '(choice (const nil)
                    face))
+  (defcustom pc-bufsw-window-buffer-face nil
+    "If non-nil, use this face for names of buffers previously displayed in the current window."
+    :type '(choice (const nil)
+                   face))
+  (defcustom pc-bufsw-frame-buffer-face nil
+    "If non-nil, use this face for names of buffers previously displayed in the current frame."
+    :type '(choice (const nil)
+                   face))
   (defcustom pc-bufsw-selected-buffer-face nil
     "If non-nil, use this face for selected buffer names."
     :type '(choice (const nil)
@@ -338,10 +346,19 @@ Buffers are odered from most to least recently used.")
     str))
 
 (defun pc-bufsw--show-name (i at-left-edge)
-  (let* ((name (buffer-name (aref pc-bufsw--walk-vector i)))
+  (let* ((buf (aref pc-bufsw--walk-vector i))
+	 (name (buffer-name buf))
 	 (current (= i pc-bufsw--cur-index))
-	 (face (if current pc-bufsw-selected-buffer-face
-		 pc-bufsw-buffer-face)))
+	 (face (cond
+		((and pc-bufsw-selected-buffer-face current)
+		 pc-bufsw-selected-buffer-face)
+		((and pc-bufsw-window-buffer-face
+		      (memq buf (mapcar #'car (window-prev-buffers))))
+		 pc-bufsw-window-buffer-face)
+		((and pc-bufsw-frame-buffer-face
+		      (memq buf (frame-parameter (selected-frame) 'buffer-list)))
+		 pc-bufsw-frame-buffer-face)
+		(t pc-bufsw-buffer-face))))
     (concat
      (if at-left-edge "" " ")
      (if current pc-bufsw-decorator-left
