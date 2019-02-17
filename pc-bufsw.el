@@ -245,10 +245,19 @@ Buffers are odered from most to least recently used.")
     (let ((prev-index pc-bufsw--cur-index))
       (pc-bufsw--choose-next-index direction)
       (when (/= pc-bufsw--cur-index prev-index)
-	(switch-to-buffer (aref pc-bufsw--walk-vector pc-bufsw--cur-index) t))
+	(pc-bufsw--preview-buffer
+	 (aref pc-bufsw--walk-vector pc-bufsw--cur-index)))
       (pc-bufsw--show-buffers-names)
       (when (sit-for pc-bufsw-quit-time)
 	(pc-bufsw--finish)))))
+
+(defun pc-bufsw--preview-buffer (buf)
+  "Switch to buffer BUF, preserving window/frame buffer histories."
+  (let ((old-prev-buffers (window-prev-buffers))
+	(old-next-buffers (window-next-buffers)))
+    (switch-to-buffer buf t)
+    (set-window-prev-buffers (selected-window) old-prev-buffers)
+    (set-window-next-buffers (selected-window) old-next-buffers)))
 
 (defun pc-bufsw--can-start ()
   (not (window-minibuffer-p (selected-window))))
@@ -353,6 +362,10 @@ Buffers are odered from most to least recently used.")
 (defun pc-bufsw--finish ()
   ;; Called on switch mode close.
   (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index))
+  ;; Switch back to the original and target buffer,
+  ;; ensuring they are in the buffer history in that order.
+  (switch-to-buffer (aref pc-bufsw--walk-vector 0))
+  (switch-to-buffer (aref pc-bufsw--walk-vector pc-bufsw--cur-index))
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
   (setq pc-bufsw--walk-vector nil)
   (setq pc-bufsw--cur-index 0)
