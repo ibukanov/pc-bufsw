@@ -353,7 +353,8 @@ Buffers are odered from most to least recently used.")
 		((and pc-bufsw-selected-buffer-face current)
 		 pc-bufsw-selected-buffer-face)
 		((and pc-bufsw-window-buffer-face
-		      (memq buf (mapcar #'car (window-prev-buffers))))
+		      (or (eq buf (aref pc-bufsw--walk-vector 0))
+			  (memq buf (mapcar #'car (window-prev-buffers)))))
 		 pc-bufsw-window-buffer-face)
 		((and pc-bufsw-frame-buffer-face
 		      (memq buf (frame-parameter (selected-frame) 'buffer-list)))
