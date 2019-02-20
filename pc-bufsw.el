@@ -357,6 +357,8 @@ Buffers are odered from most to least recently used.")
 		 pc-bufsw-selected-buffer-face)
 		((and pc-bufsw-window-buffer-face
 		      (or (eq buf (aref pc-bufsw--walk-vector 0))
+			  ;; window-prev-buffers et al should not
+			  ;; change while pc-bufsw is active.
 			  (memq buf (mapcar #'car (window-prev-buffers)))))
 		 pc-bufsw-window-buffer-face)
 		((and pc-bufsw-frame-buffer-face
