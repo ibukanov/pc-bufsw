@@ -280,22 +280,25 @@ Buffers are odered from most to least recently used.")
 
 (defun pc-bufsw--get-walk-vector ()
   ;; Construct main buffer vector.
-  (let* (assembled
-	 (buffers (append
-		   (list (current-buffer))
-		   (when pc-bufsw-prefer-current-window
-		     (mapcar #'car (window-prev-buffers)))
-		   (when pc-bufsw-prefer-current-frame
-		     (frame-parameter (selected-frame) 'buffer-list))
-		   (buffer-list))))
+  (let (assembled
+	(num 0)
+	(buffers (append
+		  (list (current-buffer))
+		  (when pc-bufsw-prefer-current-window
+		    (mapcar #'car (window-prev-buffers)))
+		  (when pc-bufsw-prefer-current-frame
+		    (frame-parameter (selected-frame) 'buffer-list))
+		  (buffer-list))))
     (dolist (buf buffers)
-      (when (and (not (memq buf assembled))
+      (when (and (< num 100) ; Limit results to avoid O(n^2)
+		 (not (memq buf assembled))
 		 (pc-bufsw--can-work-buffer buf)
 		 (cond
 		  ((eq pc-bufsw-other-windows :skip)
 		   (not (get-buffer-window buf)))
 		  (t)))
-	(setq assembled (cons buf assembled))))
+	(setq assembled (cons buf assembled)
+	      num (1+ num))))
     (vconcat (nreverse assembled))))
 
 (defun pc-bufsw--can-work-buffer (buffer)
