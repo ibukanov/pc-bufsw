@@ -89,8 +89,8 @@
 
 ;;;###autoload
 (defun pc-bufsw-default-keybindings ()
-  "Deprecated.  Use (`pc-buf' t) instead."
-  (message "pc-bufsw-default-keybindings is deprecated. Use (`pc-buf' t) instead.")
+  "Deprecated.  Use (`pc-bufsw' t) instead."
+  (message "pc-bufsw-default-keybindings is deprecated. Use (`pc-bufsw' t) instead.")
   (pc-bufsw t))
 
 ;; Copy into the autoload file the minor mode definition and
@@ -188,6 +188,43 @@ becomes current."
     :group 'pc-bufsw
     :version "3.2")
 
+  (defcustom pc-bufsw-decorator-left "<"
+    "Defines which character is used when decorating the selected buffer.
+
+Formatting can be added using text properties, e.g.:
+(setq pc-bufsw-decorator-left (propertize \"[\" \\='face \\='bold))"
+    :type 'string)
+  (defcustom pc-bufsw-decorator-right ">"
+    "Defines which character is used when decorating the selected buffer.
+
+Formatting can be added using text properties, e.g.:
+(setq pc-bufsw-decorator-right (propertize \"]\" \\='face \\='bold))"
+    :type 'string)
+
+  (defcustom pc-bufsw-buffer-face nil
+    "If non-nil, use this face for buffer names."
+    :type '(choice (const nil)
+                   face))
+  (defcustom pc-bufsw-window-buffer-face nil
+    "If non-nil, use this face for names of buffers previously displayed in the current window."
+    :type '(choice (const nil)
+                   face))
+  (defcustom pc-bufsw-frame-buffer-face nil
+    "If non-nil, use this face for names of buffers previously displayed in the current frame."
+    :type '(choice (const nil)
+                   face))
+  (defcustom pc-bufsw-selected-buffer-face nil
+    "If non-nil, use this face for selected buffer names."
+    :type '(choice (const nil)
+                   face))
+
+  (defcustom pc-bufsw-prefer-current-window nil
+    "Prefer buffers previously displayed in the current window when building buffer list."
+    :type 'boolean)
+  (defcustom pc-bufsw-prefer-current-frame nil
+    "Prefer buffers previously displayed in the current frame when building buffer list."
+    :type 'boolean)
+
   (pc-bufsw-update-keybindings)
 
   ;; Support older code using (setq pc-bufsw-keys-enable t) in ini files before
@@ -202,12 +239,6 @@ Buffers are odered from most to least recently used.")
 (defvar pc-bufsw--cur-index 0
   "Index of currently selected buffer in `pc-bufsw--walk-vector'.")
 
-(defvar pc-bufsw--start-buf-list nil
-  "The buffer list at the start of the buffer switch.
-When the user stops the selection, the new order of buffers
-matches the list except the selected buffer that is moved on the
-top.")
-
 (defun pc-bufsw--walk (direction)
   ;; Main loop. It does 4 things. First, select new buffer and/or
   ;; windows according to user input. Second, it selects the newly
@@ -215,7 +246,6 @@ top.")
   ;; line with buffer names. Forth, it waits for a timeout to
   ;; terminate the switching.
   (when (and (null pc-bufsw--walk-vector) (pc-bufsw--can-start))
-    (setq pc-bufsw--start-buf-list (buffer-list))
     (setq pc-bufsw--cur-index 0)
     (setq pc-bufsw--walk-vector (pc-bufsw--get-walk-vector))
     (add-hook 'pre-command-hook 'pc-bufsw--switch-hook))
@@ -223,21 +253,22 @@ top.")
     (let ((prev-index pc-bufsw--cur-index))
       (pc-bufsw--choose-next-index direction)
       (when (/= pc-bufsw--cur-index prev-index)
-	(switch-to-buffer (aref pc-bufsw--walk-vector pc-bufsw--cur-index) t))
+	(pc-bufsw--preview-buffer
+	 (aref pc-bufsw--walk-vector pc-bufsw--cur-index)))
       (pc-bufsw--show-buffers-names)
       (when (sit-for pc-bufsw-quit-time)
 	(pc-bufsw--finish)))))
 
+(defun pc-bufsw--preview-buffer (buf)
+  "Switch to buffer BUF, preserving window/frame buffer histories."
+  (let ((old-prev-buffers (window-prev-buffers))
+	(old-next-buffers (window-next-buffers)))
+    (switch-to-buffer buf t)
+    (set-window-prev-buffers (selected-window) old-prev-buffers)
+    (set-window-next-buffers (selected-window) old-next-buffers)))
+
 (defun pc-bufsw--can-start ()
   (not (window-minibuffer-p (selected-window))))
-
-(defun pc-bufsw--get-buffer-display-time (buffer)
-  (with-current-buffer buffer
-    buffer-display-time))
-
-(defun pc-bufsw--set-buffer-display-time (buffer time)
-  (with-current-buffer buffer
-    (setq buffer-display-time time)))
 
 (defun pc-bufsw--switch-hook ()
   ;; Hook to access next input from user.
@@ -249,22 +280,31 @@ top.")
 
 (defun pc-bufsw--get-walk-vector ()
   ;; Construct main buffer vector.
-  (let* ((cur-buf (current-buffer))
-	 (assembled (list cur-buf)))
-    (dolist (buf pc-bufsw--start-buf-list)
-      (when (and (not (eq buf cur-buf))
+  (let (assembled
+	(num 0)
+	(buffers (append
+		  (list (current-buffer))
+		  (when pc-bufsw-prefer-current-window
+		    (mapcar #'car (window-prev-buffers)))
+		  (when pc-bufsw-prefer-current-frame
+		    (frame-parameter (selected-frame) 'buffer-list))
+		  (buffer-list))))
+    (dolist (buf buffers)
+      (when (and (< num 100) ; Limit results to avoid O(n^2)
+		 (not (memq buf assembled))
 		 (pc-bufsw--can-work-buffer buf)
 		 (cond
 		  ((eq pc-bufsw-other-windows :skip)
 		   (not (get-buffer-window buf)))
 		  (t)))
-	(setq assembled (cons buf assembled))))
+	(setq assembled (cons buf assembled)
+	      num (1+ num))))
     (vconcat (nreverse assembled))))
 
 (defun pc-bufsw--can-work-buffer (buffer)
-  ;; Return nill if buffer is not sutable for switch.
+  ;; Return nil if buffer is not suitable for switch.
   (let ((name (buffer-name buffer)))
-    (not (char-equal ?\  (aref name 0)))))
+    (not (equal ?\  (aref name 0)))))
 
 (defun pc-bufsw--show-buffers-names ()
   ;; Echo buffer list. Current buffer marked by <>.
@@ -309,11 +349,30 @@ top.")
     str))
 
 (defun pc-bufsw--show-name (i at-left-edge)
-  (let ((name (buffer-name (aref pc-bufsw--walk-vector i))))
-    (cond
-     ((= i pc-bufsw--cur-index) (concat (if at-left-edge "<" " <") name ">"))
-     (at-left-edge (concat " " name " "))
-     (t (concat "  " name " ")))))
+  (let* ((buf (aref pc-bufsw--walk-vector i))
+	 (name (buffer-name buf))
+	 (current (= i pc-bufsw--cur-index))
+	 (face (cond
+		((and pc-bufsw-selected-buffer-face current)
+		 pc-bufsw-selected-buffer-face)
+		((and pc-bufsw-window-buffer-face
+		      (or (eq buf (aref pc-bufsw--walk-vector 0))
+			  ;; window-prev-buffers et al should not
+			  ;; change while pc-bufsw is active.
+			  (memq buf (mapcar #'car (window-prev-buffers)))))
+		 pc-bufsw-window-buffer-face)
+		((and pc-bufsw-frame-buffer-face
+		      (memq buf (frame-parameter (selected-frame) 'buffer-list)))
+		 pc-bufsw-frame-buffer-face)
+		(t pc-bufsw-buffer-face))))
+    (concat
+     (if at-left-edge "" " ")
+     (if current pc-bufsw-decorator-left
+       (make-string (length pc-bufsw-decorator-left) ?\ ))
+     (if face (propertize name 'face face) name)
+     (if current pc-bufsw-decorator-right
+       (make-string (length pc-bufsw-decorator-right) ?\ ))
+     )))
 
 (defun pc-bufsw--choose-next-index (direction)
   (setq pc-bufsw--cur-index
@@ -325,21 +384,25 @@ top.")
 
 (defun pc-bufsw--finish ()
   ;; Called on switch mode close.
-  (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index)
-			   pc-bufsw--start-buf-list)
+  (pc-bufsw--restore-order (aref pc-bufsw--walk-vector pc-bufsw--cur-index))
+  ;; Switch back to the original and target buffer,
+  ;; ensuring they are in the buffer history in that order.
+  (switch-to-buffer (aref pc-bufsw--walk-vector 0))
+  (switch-to-buffer (aref pc-bufsw--walk-vector pc-bufsw--cur-index))
   (remove-hook 'pre-command-hook 'pc-bufsw--switch-hook)
   (setq pc-bufsw--walk-vector nil)
   (setq pc-bufsw--cur-index 0)
-  (setq pc-bufsw--start-buf-list nil)
   (message nil))
 
-(defun pc-bufsw--restore-order (chosen-buffer list)
-  ;; Put buffers in Emacs buffer list according to oder indicated by
-  ;; list except put chosen-buffer to the first place.
-  (mapc (lambda (buf)
-	  (when (not (eq buf chosen-buffer))
-	    (bury-buffer buf)))
-	list))
+(defun pc-bufsw--restore-order (chosen-buffer)
+  "Ensure CHOSEN-BUFFER is at the front of the current frame's buffer list."
+  (set-frame-parameter
+   nil 'buffer-list
+   (cons chosen-buffer
+	 (delq chosen-buffer (frame-parameter nil 'buffer-list))))
+  (set-frame-parameter
+   nil 'buried-buffer-list
+   (delq chosen-buffer (frame-parameter nil 'buried-buffer-list))))
 
 (provide 'pc-bufsw)
 
