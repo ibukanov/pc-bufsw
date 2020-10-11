@@ -304,7 +304,7 @@ Buffers are odered from most to least recently used.")
 (defun pc-bufsw--can-work-buffer (buffer)
   ;; Return nil if buffer is not suitable for switch.
   (let ((name (buffer-name buffer)))
-    (not (equal ?\  (aref name 0)))))
+    (and name (not (equal ?\  (aref name 0))))))
 
 (defun pc-bufsw--show-buffers-names ()
   ;; Echo buffer list. Current buffer marked by <>.
